@@ -1,14 +1,17 @@
-import os
 import sys
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon
 from matplotlib.patches import Patch
 import numpy as np
-import pandas as pd
 from shapely import affinity
 from shapely.wkt import loads as wkt_loads
-import tifffile as tiff
+
+from utils import read_train_wkt
+from utils import read_grid_sizes
+from utils import read_img
+from utils import get_img_scalers
+
 
 CLASSES = {
     '1': 'Buildings',
@@ -24,45 +27,8 @@ CLASSES = {
 }
 
 
-INPUT_DIR = './satellite-segmantation'
-TRAIN_WKT_PATH = os.path.join(INPUT_DIR, 'train_wkt_v4.csv')
-GRID_SIZES_PATH = os.path.join(INPUT_DIR, 'grid_sizes.csv')
-
-
-def read_train_wkt(path):
-    return pd.read_csv(path)
-
-
-def read_grid_sizes(path):
-    return pd.read_csv(path, names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
-
-
-def read_img(img_id):
-    img_path = os.path.join(INPUT_DIR, 'three_band/{}.tif'.format(img_id))
-    img = tiff.imread(img_path)
-
-    return img
-
-
 def get_training_img_ids(df):
     return df.ImageId.unique()
-
-
-def get_img_scalers(img_id, gs):
-    grid_size = gs[gs.ImageId == img_id]
-    x_max = grid_size.Xmax.values[0]
-    y_min = grid_size.Ymin.values[0]
-
-    img = read_img(img_id)
-    width, height = img.shape[1:]
-
-    width = width / (width + 1)
-    height = height / (height + 1)
-
-    x_scaler = width / x_max
-    y_scaler = height / y_min
-
-    return (x_scaler, y_scaler)
 
 
 def is_training_img(img_id, training_img_ids):
@@ -70,7 +36,8 @@ def is_training_img(img_id, training_img_ids):
 
 
 def visualize_img(img_id, df, gs):
-    x_scaler, y_scaler = get_img_scalers(img_id, gs)
+    img = read_img(img_id)
+    x_scaler, y_scaler = get_img_scalers(img, img_id, gs)
 
     fig, ax = plt.subplots(figsize=(8, 8))
 
@@ -113,8 +80,8 @@ if __name__ == '__main__':
 
     img_id = sys.argv[1]
 
-    df = read_train_wkt(TRAIN_WKT_PATH)
-    gs = read_grid_sizes(GRID_SIZES_PATH)
+    df = read_train_wkt()
+    gs = read_grid_sizes()
 
     training_img_ids = get_training_img_ids(df)
 
