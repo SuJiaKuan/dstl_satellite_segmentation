@@ -11,6 +11,7 @@ from utils import read_train_wkt
 from utils import read_grid_sizes
 from utils import read_img
 from utils import get_img_scalers
+from utils import get_training_img_ids
 
 
 CLASSES = {
@@ -25,10 +26,6 @@ CLASSES = {
     '9': 'Vehicle Large',
     '10': 'Vehicle Small',
 }
-
-
-def get_training_img_ids(df):
-    return df.ImageId.unique()
 
 
 def is_training_img(img_id, training_img_ids):
@@ -73,13 +70,7 @@ def visualize_img(img_id, df, gs):
     plt.show()
 
 
-if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print('Usage: python {} img_id'.format(sys.argv[0]))
-        sys.exit(-1)
-
-    img_id = sys.argv[1]
-
+def main(img_id):
     df = read_train_wkt()
     gs = read_grid_sizes()
 
@@ -91,3 +82,13 @@ if __name__ == '__main__':
         sys.exit(-1)
     else:
         visualize_img(img_id, df, gs)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print('Usage: python {} img_id'.format(sys.argv[0]))
+        sys.exit(-1)
+
+    img_id = sys.argv[1]
+
+    main(img_id)

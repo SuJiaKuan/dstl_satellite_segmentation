@@ -39,3 +39,7 @@ def get_img_scalers(img, img_id, gs):
     y_scaler = height / y_min
 
     return (x_scaler, y_scaler)
+
+
+def get_training_img_ids(df):
+    return df.ImageId.unique()
