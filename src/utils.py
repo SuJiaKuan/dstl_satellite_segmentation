@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import tifffile as tiff
+from shapely.wkt import loads as wkt_loads
 
 from config import INPUT_DIR
 from config import TRAIN_CSV_PATH
@@ -32,8 +33,8 @@ def get_img_scalers(img, img_id, gs):
 
     width, height = img.shape[1:]
 
-    width = width / (width + 1)
-    height = height / (height + 1)
+    width = float(width) * width / (width + 1)
+    height = float(height) * height / (height + 1)
 
     x_scaler = width / x_max
     y_scaler = height / y_min
@@ -43,3 +44,10 @@ def get_img_scalers(img, img_id, gs):
 
 def get_training_img_ids(df):
     return df.ImageId.unique()
+
+
+def get_polygons(img_id, class_type, df):
+    class_data = df[(df.ImageId == img_id) & (df.ClassType == class_type)]
+    polygons = wkt_loads(class_data.MultipolygonWKT.values[0])
+
+    return polygons
