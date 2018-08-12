@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import tifffile as tiff
+import numpy as np
 from shapely.wkt import loads as wkt_loads
 
 from config import INPUT_DIR
@@ -22,6 +23,7 @@ def read_grid_sizes():
 def read_img(img_id):
     img_path = os.path.join(INPUT_DIR, 'three_band/{}.tif'.format(img_id))
     img = tiff.imread(img_path)
+    img = np.rollaxis(img, 0, 3)
 
     return img
 
@@ -31,7 +33,7 @@ def get_img_scalers(img, img_id, gs):
     x_max = grid_size.Xmax.values[0]
     y_min = grid_size.Ymin.values[0]
 
-    width, height = img.shape[1:]
+    width, height = img.shape[0:2]
 
     width = float(width) * width / (width + 1)
     height = float(height) * height / (height + 1)
