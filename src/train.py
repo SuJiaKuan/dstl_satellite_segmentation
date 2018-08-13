@@ -1,4 +1,5 @@
 import os
+import math
 import random
 import time
 
@@ -7,7 +8,6 @@ import numpy as np
 from shapely import affinity
 from keras.losses import binary_crossentropy
 from keras.optimizers import Adam
-from keras.utils.generic_utils import Progbar
 
 from models import unet
 from utils import read_train_wkt
@@ -84,6 +84,28 @@ def get_patches(x_train_list, y_train_list, num):
     return (x_train_patches, y_train_patches)
 
 
+def eval_model(model, x, y, batch_size):
+    total_size = x.shape[0]
+    repeats = math.ceil(total_size / batch_size)
+    avg_scores = np.array([])
+
+    for idx in range(repeats):
+        start_pos = idx * batch_size
+        end_pos = (idx + 1) * batch_size
+        x_input = x[start_pos:end_pos]
+        y_input = y[start_pos:end_pos]
+
+        scores = model.test_on_batch(x_input, y_input)
+        weighted_scores = np.array(scores) * (x_input.shape[0] / total_size)
+
+        if idx is 0:
+            avg_scores = np.array(weighted_scores)
+        else:
+            avg_scores = np.add(avg_scores, weighted_scores)
+
+    return avg_scores
+
+
 def save_model(model):
     if not os.path.exists(WEIGHTS_DIR):
             os.makedirs(WEIGHTS_DIR)
@@ -92,7 +114,12 @@ def save_model(model):
     model.save(output_path)
 
 
-def train(df, gs, batch_size=128, epochs=1000):
+def train(df,
+          gs,
+          batch_size=128,
+          epochs=1000,
+          validation_size=1000,
+          test_size=1000):
     train_img_ids = get_training_img_ids(df)
 
     (x_train_list, y_train_list) = get_train_data(train_img_ids, df, gs)
@@ -103,14 +130,26 @@ def train(df, gs, batch_size=128, epochs=1000):
                   loss=binary_crossentropy,
                   metrics=['accuracy'])
 
-    progbar = Progbar(epochs * batch_size)
+    (x_val_patches, y_val_patches) = get_patches(x_train_list,
+                                                 y_train_list,
+                                                 validation_size)
+
     for epoch in range(epochs):
         (x_train_patches, y_train_patches) = get_patches(x_train_list,
                                                          y_train_list,
                                                          batch_size)
-        result = model.train_on_batch(x_train_patches, y_train_patches)
-        progbar.add(batch_size, values=[('loss', result[0]),
-                                        ('acc', result[1])])
+        train_scores = model.train_on_batch(x_train_patches, y_train_patches)
+        val_scores = eval_model(model, x_val_patches, y_val_patches, batch_size)
+
+        print('[Epoch {}] Loss: {} - Accuracy: {} - Validation Accuracy: {}'
+              .format(epoch, train_scores[0], train_scores[1], val_scores[1]))
+
+    (x_test_patches, y_test_patches) = get_patches(x_train_list,
+                                                   y_train_list,
+                                                   test_size)
+    test_scores = eval_model(model, x_test_patches, y_test_patches, batch_size)
+
+    print('Test Accuracy: {}'.format(test_scores[1]))
 
     save_model(model)
 
