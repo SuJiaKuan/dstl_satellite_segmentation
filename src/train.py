@@ -5,9 +5,9 @@ import time
 import cv2
 import numpy as np
 from shapely import affinity
-from keras.callbacks import ModelCheckpoint
 from keras.losses import binary_crossentropy
 from keras.optimizers import Adam
+from keras.utils.generic_utils import Progbar
 
 from models import unet
 from utils import read_train_wkt
@@ -50,8 +50,7 @@ def get_train_data(train_img_ids, df, gs):
     x_train_list = []
     y_train_list = []
 
-    # for img_id in train_img_ids:
-    for img_id in train_img_ids[0:2]:
+    for img_id in train_img_ids:
         x_train = read_img(img_id)
         y_train = generate_mask(x_train, img_id, df, gs)
         x_train_list.append(x_train)
@@ -60,7 +59,7 @@ def get_train_data(train_img_ids, df, gs):
     return (x_train_list, y_train_list)
 
 
-def get_patches(x_train_list, y_train_list, num=10000):
+def get_patches(x_train_list, y_train_list, num):
     x_train_patches = []
     y_train_patches = []
 
@@ -85,35 +84,35 @@ def get_patches(x_train_list, y_train_list, num=10000):
     return (x_train_patches, y_train_patches)
 
 
-def get_model_checkpoint():
+def save_model(model):
     if not os.path.exists(WEIGHTS_DIR):
             os.makedirs(WEIGHTS_DIR)
 
-    path_to_ckpt = '{}/unet_{}.hdf5'.format(WEIGHTS_DIR, int(time.time()))
-    model_checkpoint = ModelCheckpoint(path_to_ckpt,
-                                       monitor='loss',
-                                       save_best_only=True)
-
-    return model_checkpoint
+    output_path = '{}/unet_{}.hdf5'.format(WEIGHTS_DIR, int(time.time()))
+    model.save(output_path)
 
 
-def train(df, gs):
+def train(df, gs, batch_size=128, epochs=1000):
     train_img_ids = get_training_img_ids(df)
 
     (x_train_list, y_train_list) = get_train_data(train_img_ids, df, gs)
-    (x_train_patches, y_train_patches) = get_patches(x_train_list, y_train_list)
 
-    model = unet((INPUT_SIZE, INPUT_SIZE, x_train_patches[0].shape[2]),
+    model = unet((INPUT_SIZE, INPUT_SIZE, x_train_list[0].shape[2]),
                  len(CLASSES))
     model.compile(optimizer=Adam(),
                   loss=binary_crossentropy,
                   metrics=['accuracy'])
-    model.fit(x_train_patches,
-              y_train_patches,
-              batch_size=128,
-              epochs=100,
-              shuffle=True,
-              callbacks=[get_model_checkpoint()])
+
+    progbar = Progbar(epochs * batch_size)
+    for epoch in range(epochs):
+        (x_train_patches, y_train_patches) = get_patches(x_train_list,
+                                                         y_train_list,
+                                                         batch_size)
+        result = model.train_on_batch(x_train_patches, y_train_patches)
+        progbar.add(batch_size, values=[('loss', result[0]),
+                                        ('acc', result[1])])
+
+    save_model(model)
 
 
 def main():
