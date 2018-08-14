@@ -78,8 +78,8 @@ def get_patches(x_train_list, y_train_list, num):
         x_train_patches.append(x_patch)
         y_train_patches.append(y_patch)
 
-    x_train_patches = np.array(x_train_patches)
-    y_train_patches = np.array(y_train_patches)
+    x_train_patches = np.array(x_train_patches).astype(np.float32)
+    y_train_patches = np.array(y_train_patches).astype(np.float32)
 
     return (x_train_patches, y_train_patches)
 
