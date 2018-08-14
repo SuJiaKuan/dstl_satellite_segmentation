@@ -5,7 +5,6 @@ from matplotlib.patches import Polygon
 from matplotlib.patches import Patch
 import numpy as np
 from shapely import affinity
-from shapely.wkt import loads as wkt_loads
 
 from utils import read_train_wkt
 from utils import read_grid_sizes
@@ -20,20 +19,13 @@ def is_training_img(img_id, training_img_ids):
     return any(training_img_ids == img_id)
 
 
-def visualize_img(img_id, df, gs):
-    img = read_img(img_id)
-    x_scaler, y_scaler = get_img_scalers(img, img_id, gs)
-
+def visualize_polygons_list(polygons_list):
     fig, ax = plt.subplots(figsize=(8, 8))
 
     legend_patches = []
-    for class_type in range(1, len(CLASSES) + 1):
-        polygons = get_polygons(img_id, class_type, df)
-        polygons = affinity.scale(polygons,
-                                  xfact=x_scaler,
-                                  yfact=y_scaler,
-                                  origin=(0,0,0))
 
+    for class_type in range(1, len(CLASSES) + 1):
+        polygons = polygons_list[class_type - 1]
         color = plt.cm.Paired(class_type)
 
         for polygon in polygons:
@@ -48,7 +40,6 @@ def visualize_img(img_id, df, gs):
                              alpha=0.3)
         legend_patches.append(legend_patch)
 
-    ax.set_title(img_id)
     ax.legend(handles=legend_patches,
               loc='upper right',
               fontsize='x-small',
@@ -57,6 +48,23 @@ def visualize_img(img_id, df, gs):
     ax.autoscale_view()
 
     plt.show()
+
+
+def get_polygons_list(img_id, df, gs):
+    img = read_img(img_id)
+    x_scaler, y_scaler = get_img_scalers(img, img_id, gs)
+
+    polygons_list = []
+
+    for class_type in range(1, len(CLASSES) + 1):
+        polygons = get_polygons(img_id, class_type, df)
+        polygons = affinity.scale(polygons,
+                                  xfact=x_scaler,
+                                  yfact=y_scaler,
+                                  origin=(0,0,0))
+        polygons_list.append(polygons)
+
+    return polygons_list
 
 
 def main(img_id):
@@ -70,7 +78,8 @@ def main(img_id):
               .format(img_id, training_img_ids))
         sys.exit(-1)
     else:
-        visualize_img(img_id, df, gs)
+        polygons_list = get_polygons_list(img_id, df, gs)
+        visualize_polygons_list(polygons_list)
 
 
 if __name__ == '__main__':
