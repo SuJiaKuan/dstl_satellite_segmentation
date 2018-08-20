@@ -28,7 +28,8 @@ def show_raster(raster):
 
 
 def mask_to_polygons(mask, epsilon=10., min_area=10.):
-    """Convert a mask ndarray (binarized image) to Multipolygons"""
+    # Code from: https://michhar.github.io/masks_to_polygons_and_back/
+
     # first, find contours with cv2: it's much faster than shapely
     image, contours, hierarchy = cv2.findContours(mask,
                                   cv2.RETR_CCOMP,
