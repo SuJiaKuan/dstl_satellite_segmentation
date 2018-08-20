@@ -9,6 +9,8 @@ WEIGHTS_DIR = '../weights'
 
 INPUT_SIZE = 112
 
+INFERENCE_THRESHOLD = 0.5
+
 CLASSES = {
     '1': 'Buildings',
     '2': 'Misc. Manmade structures ',
