@@ -28,6 +28,18 @@ def read_img(img_id):
     return img
 
 
+def normalize_img(img):
+    result = np.zeros_like(img, dtype=np.float32)
+
+    for idx in range(img.shape[2]):
+        minimum = float(np.amin(img[:, :, idx]))
+        maxinum = float(np.amax(img[:, :, idx]))
+        normalized = (img[:, :, idx] - minimum) / (maxinum - minimum)
+        result[:, :, idx] = normalized
+
+    return result
+
+
 def get_img_scalers(img, img_id, gs):
     grid_size = gs[gs.ImageId == img_id]
     x_max = grid_size.Xmax.values[0]

@@ -13,6 +13,7 @@ from models import unet
 from utils import read_train_wkt
 from utils import read_grid_sizes
 from utils import read_img
+from utils import normalize_img
 from utils import get_img_scalers
 from utils import get_polygons
 from utils import get_training_img_ids
@@ -51,7 +52,8 @@ def get_train_data(train_img_ids, df, gs):
     y_train_list = []
 
     for img_id in train_img_ids:
-        x_train = read_img(img_id)
+        img = read_img(img_id)
+        x_train = normalize_img(img)
         y_train = generate_mask(x_train, img_id, df, gs)
         x_train_list.append(x_train)
         y_train_list.append(y_train)
