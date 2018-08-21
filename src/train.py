@@ -8,6 +8,7 @@ import numpy as np
 from shapely import affinity
 from keras.losses import binary_crossentropy
 from keras.optimizers import Adam
+from keras import backend
 
 from models import unet
 from utils import read_train_wkt
@@ -86,6 +87,14 @@ def get_patches(x_train_list, y_train_list, num):
     return (x_train_patches, y_train_patches)
 
 
+def jaccard_index(y_true, y_pred):
+    intersection = backend.sum(y_true * y_pred, axis=[0, 1, 2])
+    total = backend.sum(y_true + y_pred, axis=[0, 1, 2])
+    jac = intersection / (total - intersection)
+
+    return backend.mean(jac)
+
+
 def eval_model(model, x, y, batch_size):
     total_size = x.shape[0]
     repeats = math.ceil(total_size / batch_size)
@@ -130,7 +139,7 @@ def train(df,
                  len(CLASSES))
     model.compile(optimizer=Adam(),
                   loss=binary_crossentropy,
-                  metrics=['accuracy'])
+                  metrics=[jaccard_index])
 
     (x_val_patches, y_val_patches) = get_patches(x_train_list,
                                                  y_train_list,
